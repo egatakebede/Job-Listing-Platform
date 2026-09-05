@@ -103,6 +103,7 @@ class UserCVTest extends TestCase
         Storage::disk('local')->put('cvs/users/test.pdf', 'fake pdf content');
         $this->jobSeeker->update([
             'cv_path' => 'cvs/users/test.pdf',
+            'cv_original_name' => 'test.pdf',
             'cv_uploaded_at' => now(),
         ]);
 

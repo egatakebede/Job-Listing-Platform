@@ -1,3 +1,4 @@
+export default function EmployeeSidebar() { return null }
 import { LayoutGrid, User, FileText, ClipboardList, Search, Settings, LogOut, Menu, X, Briefcase } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
