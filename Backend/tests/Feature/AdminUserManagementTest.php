@@ -57,7 +57,7 @@ class AdminUserManagementTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->admin, 'sanctum')
-            ->getJson('/api/v1/admin/users?search=Abel');
+            ->getJson('/api/v1/admin/users?search=abel@example.com');
 
         $response->assertOk()
             ->assertJsonCount(1, 'data.data')

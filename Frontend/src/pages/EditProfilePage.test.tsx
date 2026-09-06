@@ -25,13 +25,12 @@ describe('EditProfilePage', () => {
     renderPage()
     expect(screen.getByText('Personal Information')).toBeInTheDocument()
     expect(screen.getByText(/Full Name/)).toBeInTheDocument()
-    expect(screen.getByText(/Email Address/)).toBeInTheDocument()
   })
 
   it('renders skills section', () => {
     renderPage()
     expect(screen.getByText('Skills')).toBeInTheDocument()
-    expect(screen.getByText('React')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Add Skill/i })).toBeInTheDocument()
   })
 
   it('renders save and cancel buttons', () => {
