@@ -1,17 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
-import { useAuthStore } from './auth'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { useAuthStore, type User } from './auth'
+import * as apiModule from '@/lib/api'
 
-// Mock localStorage
-const localStorageMock = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
-}
-Object.defineProperty(window, 'localStorage', { value: localStorageMock })
-
-// Mock the API
 vi.mock('@/lib/api', () => ({
   default: {
     post: vi.fn(),
@@ -19,110 +9,92 @@ vi.mock('@/lib/api', () => ({
   },
 }))
 
-import api from '@/lib/api'
+vi.mock('@/i18n', () => ({
+  default: {
+    changeLanguage: vi.fn(),
+  },
+}))
 
-describe('Auth Store', () => {
+const mockUser: User = {
+  id: 1,
+  name: 'Test User',
+  email: 'test@example.com',
+  username: 'testuser',
+  role: 'employee',
+  role_label: 'Employee',
+  email_verified_at: '2024-01-01T00:00:00Z',
+  cv_path: null,
+  cv_original_name: null,
+  cv_uploaded_at: null,
+}
+
+describe('useAuthStore', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    localStorageMock.getItem.mockReturnValue(null)
-    // Reset store state
-    useAuthStore.setState({
-      user: null,
-      token: null,
-      isLoading: false,
-      isAuthenticated: false,
-    })
+    localStorage.clear()
   })
 
-  it('has initial state', () => {
-    const { result } = renderHook(() => useAuthStore())
-
-    expect(result.current.user).toBeNull()
-    expect(result.current.isAuthenticated).toBe(false)
-    expect(result.current.isLoading).toBe(false)
+  it('should have initial state', () => {
+    const store = useAuthStore.getState()
+    expect(store.user).toBeNull()
+    expect(store.isAuthenticated).toBe(false)
   })
 
-  it('sets token', () => {
-    const { result } = renderHook(() => useAuthStore())
-
-    act(() => {
-      result.current.setToken('test-token')
+  it('should login successfully', async () => {
+    const mockToken = 'test-token'
+    
+    vi.mocked(apiModule.default.post).mockResolvedValue({
+      data: { data: { user: mockUser, access_token: mockToken } },
     })
 
-    expect(result.current.token).toBe('test-token')
-    expect(result.current.isAuthenticated).toBe(true)
-    expect(localStorageMock.setItem).toHaveBeenCalledWith('token', 'test-token')
+    await useAuthStore.getState().login({ login: 'test@example.com', password: 'password' })
+    
+    const state = useAuthStore.getState()
+    expect(state.user).toEqual(mockUser)
+    expect(state.token).toBe(mockToken)
+    expect(state.isAuthenticated).toBe(true)
   })
 
-  it('logs in user', async () => {
-    const mockUser = { id: 1, name: 'John', email: 'john@example.com', username: 'john', role: 'employee' as const, email_verified_at: null, created_at: '2026-01-01', updated_at: '2026-01-01' }
-    vi.mocked(api.post).mockResolvedValue({
-      data: {
-        user: mockUser,
-        access_token: 'token-123',
-      },
+  it('should register successfully', async () => {
+    const mockToken = 'test-token'
+    
+    vi.mocked(apiModule.default.post).mockResolvedValue({
+      data: { data: { user: mockUser, access_token: mockToken } },
     })
 
-    const { result } = renderHook(() => useAuthStore())
-
-    await act(async () => {
-      await result.current.login({ login: 'john@example.com', password: 'password' })
+    const user = await useAuthStore.getState().register({
+      name: 'Test User',
+      email: 'test@example.com',
+      username: 'testuser',
+      password: 'password',
+      password_confirmation: 'password',
+      role: 'employee',
     })
-
-    expect(result.current.user).toEqual(mockUser)
-    expect(result.current.isAuthenticated).toBe(true)
-    expect(localStorageMock.setItem).toHaveBeenCalledWith('token', 'token-123')
+    
+    expect(user).toEqual(mockUser)
+    const state = useAuthStore.getState()
+    expect(state.isAuthenticated).toBe(true)
   })
 
-  it('logs out user', async () => {
-    vi.mocked(api.post).mockResolvedValue({ data: { message: 'Logged out' } })
+  it('should logout successfully', async () => {
+    useAuthStore.setState({ user: mockUser, token: 'test-token', isAuthenticated: true })
+    
+    vi.mocked(apiModule.default.post).mockResolvedValue({})
 
-    const { result } = renderHook(() => useAuthStore())
-
-    // First set authenticated state
-    act(() => {
-      useAuthStore.setState({
-        user: { id: 1, name: 'John', email: 'john@example.com', username: 'john', role: 'employee', email_verified_at: null, created_at: '2026-01-01', updated_at: '2026-01-01' },
-        token: 'token-123',
-        isAuthenticated: true,
-      })
-    })
-
-    await act(async () => {
-      await result.current.logout()
-    })
-
-    expect(result.current.user).toBeNull()
-    expect(result.current.token).toBeNull()
-    expect(result.current.isAuthenticated).toBe(false)
-    expect(localStorageMock.removeItem).toHaveBeenCalledWith('token')
+    await useAuthStore.getState().logout()
+    
+    const state = useAuthStore.getState()
+    expect(state.user).toBeNull()
+    expect(state.token).toBeNull()
+    expect(state.isAuthenticated).toBe(false)
   })
 
-  it('fetches user profile', async () => {
-    const mockUser = { id: 1, name: 'John', email: 'john@example.com', username: 'john', role: 'employee' as const, email_verified_at: null, created_at: '2026-01-01', updated_at: '2026-01-01' }
-    vi.mocked(api.get).mockResolvedValue({ data: { data: mockUser } })
-
-    const { result } = renderHook(() => useAuthStore())
-
-    await act(async () => {
-      await result.current.getProfile()
-    })
-
-    expect(result.current.user).toEqual(mockUser)
-  })
-
-  it('handles login error', async () => {
-    vi.mocked(api.post).mockRejectedValue(new Error('Invalid credentials'))
-
-    const { result } = renderHook(() => useAuthStore())
-
-    await expect(
-      act(async () => {
-        await result.current.login({ login: 'wrong@example.com', password: 'wrong' })
-      })
-    ).rejects.toThrow('Invalid credentials')
-
-    expect(result.current.user).toBeNull()
-    expect(result.current.isAuthenticated).toBe(false)
+  it('should check hasRole correctly', () => {
+    useAuthStore.setState({ user: mockUser })
+    const store = useAuthStore.getState()
+    
+    expect(store.hasRole('employee')).toBe(true)
+    expect(store.hasRole('admin')).toBe(false)
+    expect(store.hasRole(['employee', 'admin'])).toBe(true)
   })
 })

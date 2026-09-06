@@ -1,12 +1,13 @@
 import { create } from 'zustand'
 import i18n from '@/i18n'
+import api from '@/lib/api'
 
 export interface User {
   id: number
   name: string
   email: string
   username: string
-  role: UserRole
+  role: 'employee' | 'employer' | 'admin'
   role_label: string
   email_verified_at: string | null
   cv_path: string | null
@@ -14,11 +15,18 @@ export interface User {
   cv_uploaded_at: string | null
 }
 
-export type UserRole = 'employee' | 'employer' | 'admin'
-
 interface LoginRequest {
   login: string
   password: string
+}
+
+interface RegisterRequest {
+  name: string
+  email: string
+  username: string
+  password: string
+  password_confirmation: string
+  role: 'employee' | 'employer' | 'admin'
 }
 
 interface AuthResponse {
@@ -32,15 +40,14 @@ interface AuthState {
   isLoading: boolean
   isAuthenticated: boolean
   isInitialized: boolean
-  login: (data: LoginRequest) => Promise<void>
+  login: (data: LoginRequest) => Promise<User>
+  register: (data: RegisterRequest) => Promise<User>
   logout: () => Promise<void>
   getProfile: () => Promise<User | null>
   initialize: () => Promise<void>
-  hasRole: (roles: UserRole | UserRole[]) => boolean
+  hasRole: (roles: string | string[]) => boolean
   setToken: (token: string) => void
 }
-
-import api from '@/lib/api'
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
@@ -49,7 +56,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isInitialized: false,
   isAuthenticated: !!localStorage.getItem('token'),
 
-  login: async (data: LoginRequest) => {
+  login: async (data: LoginRequest): Promise<User> => {
     set({ isLoading: true })
     try {
       const response = await api.post('/login', data)
@@ -58,6 +65,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { user, access_token } = authData
       localStorage.setItem('token', access_token)
       set({ user, token: access_token, isAuthenticated: true, isLoading: false, isInitialized: true })
+      return user
+    } catch (error) {
+      set({ isLoading: false })
+      throw error
+    }
+  },
+
+  register: async (data: RegisterRequest): Promise<User> => {
+    set({ isLoading: true })
+    try {
+      const response = await api.post('/register', data)
+      const resData = response.data
+      const authData: AuthResponse = resData.data ?? resData
+      const { user, access_token } = authData
+      localStorage.setItem('token', access_token)
+      set({ user, token: access_token, isAuthenticated: true, isLoading: false, isInitialized: true })
+      return user
     } catch (error) {
       set({ isLoading: false })
       throw error
@@ -68,20 +92,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       await api.post('/logout')
     } finally {
-      // Clear auth
       localStorage.removeItem('token')
       set({ user: null, token: null, isAuthenticated: false, isInitialized: true })
-      
-      // Reset theme
       document.documentElement.classList.remove('dark', 'light')
-      
-      // Reset language
       await i18n.changeLanguage('en')
       localStorage.removeItem('language')
     }
   },
 
-  getProfile: async () => {
+  getProfile: async (): Promise<User | null> => {
     set({ isLoading: true })
     try {
       const response = await api.get('/profile')
@@ -108,7 +127,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  hasRole: (roles: UserRole | UserRole[]) => {
+  hasRole: (roles: string | string[]): boolean => {
     const user = get().user
     if (!user) return false
     const roleArray = Array.isArray(roles) ? roles : [roles]
