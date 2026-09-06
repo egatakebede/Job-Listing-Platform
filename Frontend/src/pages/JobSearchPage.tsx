@@ -76,7 +76,7 @@ export default function JobSearchPage() {
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto pt-14 md:pt-0">
         <EmployerHeader title={t('jobs.title')} />
 
-        <main className="px-4 sm:px-8 py-6">
+        <main className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-6">
           <div className="bg-background border rounded-lg p-4 mb-6 flex flex-wrap gap-3">
             <div className="relative flex-1 min-w-48">
               <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />

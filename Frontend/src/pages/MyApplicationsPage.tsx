@@ -69,7 +69,7 @@ export default function MyApplicationsPage() {
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto pt-14 md:pt-0">
         <EmployerHeader title={t('applications.title')} />
 
-        <main className="px-4 sm:px-8 py-6">
+        <main className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-wrap items-center gap-2 mb-6">
             {tabs.map((tab) => {
               const isActive = tab.value === activeTab

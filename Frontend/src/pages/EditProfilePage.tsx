@@ -65,7 +65,7 @@ export default function EditProfilePage() {
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto pt-14 md:pt-0">
         <EmployerHeader title={t('editProfile.title')} />
 
-        <main className="px-4 sm:px-8 py-6 space-y-5 max-w-3xl w-full">
+        <main className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-6 space-y-5 max-w-3xl w-full">
 
           <section className={sectionCls}>
             <h2 className="font-semibold">{t('editProfile.personalInfo')}</h2>
