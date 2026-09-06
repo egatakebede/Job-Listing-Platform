@@ -1,21 +1,46 @@
 import { create } from 'zustand'
-import type { User, UserRole, LoginRequest, RegisterRequest, AuthResponse } from '@/types'
-import api from '@/lib/api'
+import i18n from '@/i18n'
+
+export interface User {
+  id: number
+  name: string
+  email: string
+  username: string
+  role: UserRole
+  role_label: string
+  email_verified_at: string | null
+  cv_path: string | null
+  cv_original_name: string | null
+  cv_uploaded_at: string | null
+}
+
+export type UserRole = 'employee' | 'employer' | 'admin'
+
+interface LoginRequest {
+  login: string
+  password: string
+}
+
+interface AuthResponse {
+  user: User
+  access_token: string
+}
 
 interface AuthState {
   user: User | null
   token: string | null
   isLoading: boolean
-  isInitialized: boolean
   isAuthenticated: boolean
-  login: (data: LoginRequest) => Promise<User>
-  register: (data: RegisterRequest) => Promise<User>
+  isInitialized: boolean
+  login: (data: LoginRequest) => Promise<void>
   logout: () => Promise<void>
   getProfile: () => Promise<User | null>
   initialize: () => Promise<void>
   hasRole: (roles: UserRole | UserRole[]) => boolean
   setToken: (token: string) => void
 }
+
+import api from '@/lib/api'
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
@@ -31,27 +56,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const resData = response.data
       const authData: AuthResponse = resData.data ?? resData
       const { user, access_token } = authData
-
       localStorage.setItem('token', access_token)
       set({ user, token: access_token, isAuthenticated: true, isLoading: false, isInitialized: true })
-      return user
-    } catch (error) {
-      set({ isLoading: false })
-      throw error
-    }
-  },
-
-  register: async (data: RegisterRequest) => {
-    set({ isLoading: true })
-    try {
-      const response = await api.post('/register', data)
-      const resData = response.data
-      const authData: AuthResponse = resData.data ?? resData
-      const { user, access_token } = authData
-
-      localStorage.setItem('token', access_token)
-      set({ user, token: access_token, isAuthenticated: true, isLoading: false, isInitialized: true })
-      return user
     } catch (error) {
       set({ isLoading: false })
       throw error
@@ -62,8 +68,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       await api.post('/logout')
     } finally {
+      // Clear auth
       localStorage.removeItem('token')
       set({ user: null, token: null, isAuthenticated: false, isInitialized: true })
+      
+      // Reset theme
+      document.documentElement.classList.remove('dark', 'light')
+      
+      // Reset language
+      await i18n.changeLanguage('en')
+      localStorage.removeItem('language')
     }
   },
 
@@ -82,17 +96,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   initialize: async () => {
-    const token = localStorage.getItem('token')
-    if (!token) {
-      set({ isInitialized: true, isAuthenticated: false, user: null })
-      return
-    }
-
+    if (get().isInitialized) return
     try {
-      const response = await api.get('/profile')
-      const resData = response.data
-      const userData: User = resData.data ?? resData
-      set({ user: userData, isAuthenticated: true, isInitialized: true })
+      if (get().token) {
+        await get().getProfile()
+      }
+      set({ isInitialized: true })
     } catch {
       localStorage.removeItem('token')
       set({ user: null, token: null, isAuthenticated: false, isInitialized: true })
@@ -101,9 +110,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   hasRole: (roles: UserRole | UserRole[]) => {
     const user = get().user
-    if (!user || !user.role) return false
-    const allowed = Array.isArray(roles) ? roles : [roles]
-    return allowed.includes(user.role)
+    if (!user) return false
+    const roleArray = Array.isArray(roles) ? roles : [roles]
+    return roleArray.includes(user.role)
   },
 
   setToken: (token: string) => {

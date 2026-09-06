@@ -18,7 +18,7 @@ i18n.use(initReactI18next).init({
 })
 
 // Setup QueryClient for tests
-global.queryClient = new QueryClient({
+;(globalThis as any).queryClient = new QueryClient({
   defaultOptions: {
     queries: { retry: false },
     mutations: { retry: false },

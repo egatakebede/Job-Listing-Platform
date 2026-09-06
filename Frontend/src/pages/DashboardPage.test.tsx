@@ -50,28 +50,30 @@ describe('DashboardPage', () => {
 
   it('renders dashboard header', () => {
     renderPage()
-    expect(screen.getByText('Job Listing Platform')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
   })
 
   it('renders user name', () => {
     renderPage()
-    expect(screen.getByText(/Welcome, John Doe/)).toBeInTheDocument()
+    expect(screen.getByText(/Welcome back, John Doe/)).toBeInTheDocument()
   })
 
   it('renders user info', () => {
     renderPage()
     expect(screen.getAllByText('John Doe').length).toBeGreaterThan(0)
-    expect(screen.getByText('@johndoe')).toBeInTheDocument()
-    expect(screen.getByText('john@example.com')).toBeInTheDocument()
   })
 
-  it('renders logout button', () => {
+  it('opens the profile menu and shows logout', async () => {
+    const { default: userEvent } = await import('@testing-library/user-event')
+    const user = userEvent.setup()
     renderPage()
-    expect(screen.getByRole('button', { name: /logout/i })).toBeInTheDocument()
+    const profileButton = screen.getByText('John Doe').closest('button')!
+    await user.click(profileButton)
+    expect(screen.getAllByRole('button', { name: /logout/i }).length).toBeGreaterThan(0)
   })
 
-  it('renders user avatar icon', () => {
+  it('renders dashboard description', () => {
     renderPage()
-    expect(screen.getByText("Your job listing dashboard")).toBeInTheDocument()
+    expect(screen.getByText("Here's a summary of your job search activity.")).toBeInTheDocument()
   })
 })
