@@ -27,7 +27,7 @@ class NewApplicationReceivedNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'mail'];
     }
 
     /**
@@ -50,4 +50,16 @@ class NewApplicationReceivedNotification extends Notification
             'applied_at' => now()->toIso8601String(),
         ];
     }
+
+public function toMail(object $notifiable): \Illuminate\Notifications\Messages\MailMessage
+{
+    return (new \Illuminate\Notifications\Messages\MailMessage)
+        ->subject('New Application Received')
+        ->greeting('Hello ' . $notifiable->name . ',')
+        ->line("Candidate {$this->applicant->name} has applied for your position '{$this->jobPost->title}'.")
+        ->line("Applicant Email: {$this->applicant->email}")
+        ->action('View Application', url('/job-applicants'))
+        ->line('Thank you for using HireStream!');
+}
+
 }
