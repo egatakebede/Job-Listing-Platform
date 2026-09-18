@@ -35,3 +35,11 @@ frankenphp-worker.php
 # Docker files (local development)
 Dockerfile
 .dockerignore
+Backend/Dockerfile
+Backend/config/mail.php
+Frontend/vite.config.ts
+docker-compose.yml
+compose.yml
+
+Dockerfile
+compose.yaml
