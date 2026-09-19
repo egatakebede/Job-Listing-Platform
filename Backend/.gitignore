@@ -31,3 +31,5 @@ frankenphp-worker.php
 .env.testing
 .env.backup
 .env.production
+.env.brevo.backup
+.env.*
